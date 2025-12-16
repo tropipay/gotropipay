@@ -100,9 +100,8 @@ func (c *Client) listMovementsCommon(ctx context.Context, path string, limit, of
 	return &resp, nil
 }
 
-// GraphQL Business Endpoint
+// GraphQL Business Endpoints
 
-// SearchMovements performs an advanced search using the GraphQL endpoint
 // SearchMovements performs an advanced search using the GraphQL endpoint
 func (c *Client) SearchMovements(ctx context.Context, filter *MovementFilter, limit, offset int) (*ListMovementsResponse, error) {
 	query := `query GetMovements($filter: MovementFilter, $pagination: PaginationInput) { 
