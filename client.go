@@ -21,7 +21,7 @@ func NewClient(clientID, clientSecret string, opts ...Option) *Client {
 	c := &Client{
 		clientID:     clientID,
 		clientSecret: clientSecret,
-		baseURL:      string(ProductionEnv), // Default to Production? Or Sandbox? Usually Prod is default, but let's check prompt. Prompt didn't specify default, so Prod is safe default provided user can change it.
+		baseURL:      string(ProductionEnv), // default is production
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
