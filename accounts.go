@@ -23,7 +23,7 @@ type GetCryptoAddressResponse struct {
 }
 
 // AddTropicardAccount links a Tropicard to the user's account.
-// Since the exact response structure wasn't provided, it returns a generic map.
+// It returns a generic map.
 // You can likely expect an "id" field in the response to use with other Account endpoints.
 func (c *Client) AddTropicardAccount(ctx context.Context, req AddTropicardAccountRequest) (map[string]interface{}, error) {
 	var resp map[string]interface{}
