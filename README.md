@@ -32,7 +32,7 @@ import (
     "log"
     "os"
 
-    "github.com/yosle/gotropipay"
+    "github.com/tropipay/gotropipay"
 )
 
 func main() {
