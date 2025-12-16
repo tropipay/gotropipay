@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	"github.com/yosle/gotropipay"
+	"github.com/tropipay/gotropipay"
 )
 
 func newTestClient(t *testing.T) *gotropipay.Client {

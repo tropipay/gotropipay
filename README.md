@@ -17,7 +17,7 @@ A comprehensive, idiomatic Go wrapper for the [Tropipay](https://tropipay.com) P
 ## Installation
 
 ```bash
-go get github.com/yosle/gotropipay
+go get github.com/tropipay/gotropipay
 ```
 
 ## Getting Started

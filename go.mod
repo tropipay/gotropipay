@@ -1,4 +1,4 @@
-module github.com/yosle/gotropipay
+module github.com/tropipay/gotropipay
 
 go 1.25.5
 

@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/yosle/gotropipay"
+	"github.com/tropipay/gotropipay"
 )
 
 func main() {
