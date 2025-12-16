@@ -6,15 +6,22 @@ import (
 	"log"
 	"os"
 
+	"github.com/joho/godotenv"
 	"github.com/yosle/gotropipay"
 )
 
 func main() {
-	clientID := "xxxxxxxxxxxxxxxxxxxxxxxxxx"
-	clientSecret := "xxxxxxxxxxxxxxxxxxxxxx"
+	// Load .env file if it exists
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found or error loading it, relying on system environment variables")
+	}
+
+	clientID := os.Getenv("TROPIPAY_CLIENT_ID")
+	clientSecret := os.Getenv("TROPIPAY_CLIENT_SECRET")
 
 	if clientID == "" || clientSecret == "" {
 		fmt.Println("Usage: Please set TROPIPAY_CLIENT_ID and TROPIPAY_CLIENT_SECRET environment variables")
+		fmt.Println("You can create a .env file with these values.")
 		fmt.Println("Example (PowerShell):")
 		fmt.Println("$env:TROPIPAY_CLIENT_ID='your_id'; $env:TROPIPAY_CLIENT_SECRET='your_secret'; go run ./cmd/demo/main.go")
 		os.Exit(1)

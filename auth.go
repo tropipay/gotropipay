@@ -79,7 +79,9 @@ func (a *authenticator) refreshToken() (string, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", fmt.Errorf("authentication failed: status %d", resp.StatusCode)
+		var body bytes.Buffer
+		_, _ = body.ReadFrom(resp.Body)
+		return "", fmt.Errorf("authentication failed: status %d, body: %s", resp.StatusCode, body.String())
 	}
 
 	var tokenResp TokenResponse
