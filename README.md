@@ -58,13 +58,12 @@ func main() {
 
 ## Usage Examples
 
-### 1. Creating a Payment Link (PaymentCard)
+### 1. Payment Cards (Paylinks)
 
-Create a payment URL to share with a customer.
+Manage payment links for your customers.
 
 ```go
-ctx := context.Background()
-
+// Create a new payment link
 req := gotropipay.CreatePaymentCardRequest{
     Reference:   "ORDER-1234",
     Concept:     "Product Purchase",
@@ -76,16 +75,55 @@ req := gotropipay.CreatePaymentCardRequest{
 
 card, err := client.CreatePaymentCard(ctx, req)
 if err != nil {
-    log.Printf("Error creating link: %v", err)
-    return
+    log.Fatalf("Error creating link: %v", err)
 }
+fmt.Printf("Payment Link: %s\n", card.PaymentURL)
 
-fmt.Printf("Payment Link Created: %s\n", card.PaymentURL)
+// List existing cards
+cards, _ := client.ListPaymentCards(ctx)
+for _, c := range cards {
+    fmt.Printf("Card %s: %s\n", c.Reference, c.ShortURL)
+}
 ```
 
-### 2. Listing Movements with Filters
+### 2. User Management
 
-Retrieve transaction history with specific criteria.
+Access profile data and manage security settings.
+
+```go
+// Get Profile
+user, _ := client.GetUserProfile(ctx)
+fmt.Printf("User: %s %s\n", user.Name, user.Surname)
+
+// Send Security Code (SMS/Email)
+err := client.SendSecurityCode(ctx, gotropipay.SendSecurityCodeRequest{
+    Type: "email",
+})
+```
+
+### 3. Deposit Accounts (Beneficiaries)
+
+Manage external bank accounts for transfers.
+
+```go
+// List beneficiaries
+accounts, _ := client.ListDepositAccounts(ctx, 10, 0, "")
+for _, acc := range accounts {
+    fmt.Printf("Beneficiary: %s %s (%s)\n", acc.FirstName, acc.LastName, acc.AccountNumber)
+}
+
+// Validate an account number
+valResp, _ := client.ValidateAccountNumber(ctx, gotropipay.ValidateAccountNumberRequest{
+    AccountNumber:        "ES9121000418450200051332",
+    CountryDestinationID: 1, // Spain
+    Currency:             "EUR",
+})
+fmt.Printf("Is Valid: %v\n", valResp.Valid)
+```
+
+### 4. Movements (Transactions)
+
+**Standard List (REST)**
 
 ```go
 filter := &gotropipay.MovementFilter{
@@ -94,52 +132,30 @@ filter := &gotropipay.MovementFilter{
     AmountGte: 1000,
 }
 
-// Get the first 20 completed EUR transactions over 10.00
-resp, err := client.ListMovements(ctx, 20, 0, filter)
-if err != nil {
-    log.Printf("Error fetching movements: %v", err)
-    return
-}
-
+resp, _ := client.ListMovements(ctx, 20, 0, filter)
 for _, m := range resp.Items {
-    fmt.Printf("[%s] %d %s - Ref: %s\n", m.CreatedAt, m.Amount, m.Currency, m.Reference)
+    fmt.Printf("Movement: %d %s | Ref: %s\n", m.Amount, m.Currency, m.Reference)
 }
 ```
 
-### 3. Managing Beneficiaries
+**Advanced Search (GraphQL)**
 
-Add a new bank account for transfers.
-
-```go
-newBeneficiary := gotropipay.CreateDepositAccountRequest{
-    FirstName:            "Jane",
-    LastName:             "Doe",
-    AccountNumber:        "ES9121000418450200051332",
-    CountryDestinationID: 1, // Spain
-    Type:                 0,
-    Alias:                "Jane Primary",
-}
-
-data, err := client.CreateDepositAccount(ctx, newBeneficiary)
-if err != nil {
-    log.Println("Could not create beneficiary:", err)
-    return
-}
-fmt.Printf("Beneficiary Created ID: %d\n", data.ID)
-```
-
-### 4. Advanced: GraphQL Movement Search
-
-For complex queries involving nested fields.
+Ideal for complex queries, filtering by nested fields, or retrieving detailed sender/recipient info.
 
 ```go
-// Search specifically using the GraphQL endpoint
-gqlResp, err := client.SearchMovements(ctx, filter, 10, 0)
+gqlFilter := &gotropipay.MovementFilter{
+    PaymentMethod: []string{"CARD"}, // Filter by payment method
+}
+
+// Fetch advanced details
+gqlResp, err := client.SearchMovements(ctx, gqlFilter, 10, 0)
 if err != nil {
     log.Fatal(err)
 }
 
-fmt.Printf("Total matches found: %d\n", gqlResp.TotalCount)
+for _, m := range gqlResp.Items {
+    fmt.Printf("ID: %v, Amount: %d %s, Sender: %s\n", m.ID, m.Amount.Value, m.Amount.Currency, m.Sender.Name)
+}
 ```
 
 ## Best Practices

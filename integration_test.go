@@ -63,3 +63,26 @@ func TestGetUserProfile(t *testing.T) {
 
 	t.Logf("User Profile: %s %s (Email: %s)", user.Name, user.Surname, user.Email)
 }
+
+func TestSearchMovements(t *testing.T) {
+	client := newTestClient(t)
+	ctx := context.Background()
+
+	// Test with a basic filter (can be empty to get all recent movements)
+	filter := &gotropipay.MovementFilter{
+		// You can add specific filters here if needed
+	}
+
+	limit := 5
+	offset := 0
+
+	movements, err := client.SearchMovements(ctx, filter, limit, offset)
+	if err != nil {
+		t.Fatalf("Failed to search movements (GraphQL): %v", err)
+	}
+
+	t.Logf("Found %d movements (Total: %d)", len(movements.Items), movements.TotalCount)
+	for _, mov := range movements.Items {
+		t.Logf("Movement ID: %v, Amount: %d %s, State: %s, Sender: %s", mov.ID, mov.Amount, mov.Currency, mov.State, mov.Sender.Name)
+	}
+}

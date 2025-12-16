@@ -103,27 +103,33 @@ func (c *Client) listMovementsCommon(ctx context.Context, path string, limit, of
 // GraphQL Business Endpoint
 
 // SearchMovements performs an advanced search using the GraphQL endpoint
+// SearchMovements performs an advanced search using the GraphQL endpoint
 func (c *Client) SearchMovements(ctx context.Context, filter *MovementFilter, limit, offset int) (*ListMovementsResponse, error) {
-	query := `query GetMovements($filter: MovementFilter, $pagination: Pagination) { 
+	query := `query GetMovements($filter: MovementFilter, $pagination: PaginationInput) { 
 		movements(filter: $filter, pagination: $pagination) { 
 			items { 
 				id 
-				amount 
-				state 
-				currency 
+				reference
+				concept
+				state
 				createdAt 
 				completedAt 
-				balanceBefore 
-				balanceAfter 
-				reference 
-				recipient { 
-					name 
-					email 
-				} 
-				sender { 
-					name 
-					email 
-				} 
+				amount {
+					value
+					currency
+				}
+				sender
+				recipient
+				movementDetail {
+					senderData {
+						name
+						email
+					}
+					recipientData {
+						name
+						account
+					}
+				}
 			} 
 			totalCount 
 		} 
@@ -142,10 +148,42 @@ func (c *Client) SearchMovements(ctx context.Context, filter *MovementFilter, li
 		Variables: vars,
 	}
 
-	// Wrapper to handle GraphQL response shape
+	// Internal structs for GraphQL response
+	type gqlAmount struct {
+		Value    int64  `json:"value"`
+		Currency string `json:"currency"`
+	}
+	type gqlPersonaData struct {
+		Name  string `json:"name"`
+		Email string `json:"email"`
+	}
+	type gqlRecipientData struct {
+		Name    string `json:"name"`
+		Account string `json:"account"`
+	}
+	type gqlMovementDetail struct {
+		SenderData    gqlPersonaData   `json:"senderData"`
+		RecipientData gqlRecipientData `json:"recipientData"`
+	}
+	type gqlMovement struct {
+		ID             interface{}       `json:"id"`
+		Reference      string            `json:"reference"`
+		Concept        string            `json:"concept"`
+		State          string            `json:"state"`
+		CreatedAt      string            `json:"createdAt"`
+		CompletedAt    string            `json:"completedAt"`
+		Amount         gqlAmount         `json:"amount"`
+		Sender         string            `json:"sender"`
+		Recipient      string            `json:"recipient"`
+		MovementDetail gqlMovementDetail `json:"movementDetail"`
+	}
+
 	var gqlResp struct {
 		Data struct {
-			Movements ListMovementsResponse `json:"movements"`
+			Movements struct {
+				Items      []gqlMovement `json:"items"`
+				TotalCount int           `json:"totalCount"`
+			} `json:"movements"`
 		} `json:"data"`
 		Errors []struct {
 			Message string `json:"message"`
@@ -161,5 +199,39 @@ func (c *Client) SearchMovements(ctx context.Context, filter *MovementFilter, li
 		return nil, fmt.Errorf("graphql error: %s", gqlResp.Errors[0].Message)
 	}
 
-	return &gqlResp.Data.Movements, nil
+	// Map back to standard Movement struct
+	var movements []Movement
+	for _, item := range gqlResp.Data.Movements.Items {
+		// Construct User objects from details if available, otherwise just use names
+		sender := &User{Name: item.Sender}
+		if item.MovementDetail.SenderData.Name != "" {
+			sender.Name = item.MovementDetail.SenderData.Name
+			sender.Email = item.MovementDetail.SenderData.Email
+		}
+
+		recipient := &User{Name: item.Recipient}
+		if item.MovementDetail.RecipientData.Name != "" {
+			recipient.Name = item.MovementDetail.RecipientData.Name
+			// item.MovementDetail.RecipientData.Account contains account number usually
+		}
+
+		movements = append(movements, Movement{
+			ID:          item.ID,
+			Amount:      item.Amount.Value,
+			Currency:    item.Amount.Currency,
+			State:       item.State,
+			Reference:   item.Reference,
+			CreatedAt:   item.CreatedAt,
+			CompletedAt: item.CompletedAt,
+			// Balance fields are not in the standard GQL item response unless added, skipping for now
+			Sender:    sender,
+			Recipient: recipient,
+		})
+	}
+
+	return &ListMovementsResponse{
+		Items:      movements,
+		TotalCount: gqlResp.Data.Movements.TotalCount,
+		HasMore:    len(movements) < gqlResp.Data.Movements.TotalCount, // Approximate
+	}, nil
 }
